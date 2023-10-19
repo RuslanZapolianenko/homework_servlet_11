@@ -1,5 +1,7 @@
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -9,29 +11,40 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+
 @WebServlet("/time")
 public class TimeServlet extends HttpServlet {
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-        String timezoneParam = request.getParameter("timezone");
-        TimeZone timeZone;
+        String timezone = request.getParameter("timezone");
+        if (timezone == null) {
 
-        if (timezoneParam != null && !timezoneParam.isEmpty()) {
-            timeZone = TimeZone.getTimeZone("GMT" + timezoneParam);
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if ("lastTimezone".equals(cookie.getName())) {
+                        timezone = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            if (timezone == null) {
+                timezone = "UTC";
+            }
         } else {
-            timeZone = TimeZone.getTimeZone("UTC");
+            Cookie timezoneCookie = new Cookie("lastTimezone", timezone);
+            timezoneCookie.setMaxAge(30 * 24 * 60 * 60);
+            response.addCookie(timezoneCookie);
         }
-
-        Date currentDate = new Date();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-        dateFormat.setTimeZone(timeZone);
-        String currentTime = dateFormat.format(currentDate);
-
-        out.println("<html><body>");
-        out.println("<h2>Поточний час за " + timeZone.getDisplayName() + ":</h2>");
-        out.println("<p>" + currentTime + "</p>");
-        out.println("</body></html>");
+        String currentTime = getCurrentTimeInTimezone(timezone);
+        request.setAttribute("currentDate", currentTime);
+        RequestDispatcher dispatcher = request.getRequestDispatcher("time-template.html");
+        dispatcher.forward(request, response);
+    }
+    private String getCurrentTimeInTimezone(String timezone) {
+        return "2022-01-05 12:05:01 " + timezone;
     }
 }
+
+

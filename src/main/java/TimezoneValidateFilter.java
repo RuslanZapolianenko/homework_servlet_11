@@ -29,7 +29,5 @@ public class TimezoneValidateFilter implements Filter {
         }
         return Arrays.asList(TimeZone.getAvailableIDs()).contains("GMT" + timezone);
     }
-
-
 }
 
